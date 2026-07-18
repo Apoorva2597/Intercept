@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Abridge Intercept</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Archivo:wght@700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    /* Light content area — warm sepia, zero neutral gray */
+    --bg: #F4F2ED;
+    --surface: #FFFFFF;
+    --ink: #241A0F;
+    --muted: #8A6F52;
+    --border: #DFCFAF;
+    /* Nav — navy family, tied to real EHR blue, not generic dev-tool black */
+    --nav: #12314A;
+    --nav-ink: #E7EDF5;
+    --nav-muted: #7FA3C4;
+    --nav-muted-2: #6E93B8;
+    --nav-active-ink: #A9C4DC;
+    --accent: #2B6CB0;
+    /* Semantic triage colors — real clinical color taxonomy */
+    --emergency: #C23B32;
+    --emergency-ink: #6E1E18;
+    --emergency-bg: #FBEBE7;
+    --warning: #B08423;
+    --warning-ink: #6E4D0E;
+    --warning-bg: #FBF3E3;
+    --success: #3E7A50;
+    --success-ink: #1F4A2C;
+    --success-bg: #EAF6EF;
+    --info: #2C5282;
+    --info-bg: #EAF1FA;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: 'IBM Plex Sans', -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    font-size: 14px;
+  }
+  code, .mono { font-family: 'JetBrains Mono', monospace; }
+
+  .shell { display: flex; min-height: 100vh; }
+
+  /* --- Nav rail --- */
+  .nav {
+    width: 236px;
+    background: var(--nav);
+    color: var(--nav-ink);
+    display: flex;
+    flex-direction: column;
+    padding: 22px 0;
+    flex-shrink: 0;
+  }
+  .nav-brand {
+    padding: 0 20px 18px 20px;
+    border-bottom: 1px solid rgba(255,255,255,0.14);
+    margin-bottom: 10px;
+  }
+  .nav-brand .title { font-family: 'Archivo', sans-serif; font-weight: 800; font-size: 16px; letter-spacing: 0.01em; text-transform: uppercase; }
+  .nav-brand .subtitle { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--nav-muted); margin-top: 5px; letter-spacing: 0.02em; }
+  .nav-item {
+    padding: 8px 20px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    color: #B8B4AA;
+    border-left: 3px solid transparent;
+    transition: background 0.12s;
+    display: flex; flex-direction: column; gap: 1px;
+  }
+  .nav-item:hover { background: rgba(255,255,255,0.05); }
+  .nav-item.active { background: rgba(255,255,255,0.06); color: #fff; border-left-color: var(--emergency); font-weight: 700; }
+  .nav-sub { font-size: 10px; color: var(--nav-muted); font-weight: 400; }
+  .nav-item.active .nav-sub { color: var(--nav-active-ink); }
+  .nav-section-label {
+    padding: 16px 20px 6px 20px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px; text-transform: uppercase; letter-spacing: 0.07em;
+    color: var(--nav-muted-2); font-weight: 600;
+  }
+  .nav-footer {
+    margin-top: auto;
+    padding: 16px 20px 0 20px;
+    border-top: 1px solid rgba(255,255,255,0.14);
+  }
+  .nav-footer label { font-size: 10.5px; color: var(--nav-muted); display: block; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.04em; }
+  .nav-footer input {
+    width: 100%; padding: 7px 8px; border-radius: 2px; border: 1px solid rgba(255,255,255,0.2);
+    background: rgba(255,255,255,0.08); color: #fff; font-size: 12.5px; font-family: 'JetBrains Mono', monospace;
+  }
+  .nav-footer input::placeholder { color: var(--nav-muted); }
+
+  /* --- Main --- */
+  .main { flex: 1; padding: 30px 40px; max-width: 1180px; }
+  .page-header { margin-bottom: 22px; }
+  .page-header h1 { font-size: 19px; margin: 0 0 5px 0; letter-spacing: -0.005em; font-weight: 600; }
+  .page-header p { color: var(--muted); font-size: 13px; margin: 0; max-width: 720px; line-height: 1.55; }
+
+  .btn {
+    background: var(--emergency-ink); color: #fff; border: none; border-radius: 2px;
+    padding: 9px 18px; font-size: 13px; font-weight: 700; cursor: pointer;
+    font-family: 'JetBrains Mono', monospace; letter-spacing: 0.02em;
+  }
+  .btn:hover { background: #4E1610; }
+  .btn:disabled { background: #B9AB99; cursor: not-allowed; }
+  .btn-secondary { background: var(--surface); color: var(--ink); border: 1px solid var(--border); }
+  .btn-secondary:hover { background: #F0EAD9; }
+
+  select {
+    padding: 8px 10px; border-radius: 2px; border: 1px solid var(--border);
+    font-family: inherit; font-size: 13.5px; background: var(--surface); min-width: 340px; color: var(--ink);
+  }
+
+  .card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 2px;
+    padding: 16px 18px; margin-bottom: 14px;
+  }
+  .card h3 { margin: 0 0 10px 0; font-size: 12.5px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); font-weight: 700; }
+  .q-row { display: flex; align-items: center; gap: 12px; padding: 8px 12px; background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--muted); border-radius: 2px; margin-bottom: 6px; font-size: 12.5px; }
+  .q-row .code { font-weight: 700; color: var(--muted); }
+  .q-row .desc { color: var(--ink); }
+
+  /* --- Signature element: triage-tag notch, real ER mass-casualty tag shape ---
+     Applied consistently everywhere renderOutput() renders a decision, so
+     the whole app carries one distinctive, subject-grounded motif rather
+     than a generic rounded card. */
+  .flow {
+    display: flex; align-items: stretch; margin: 4px 0 16px 0;
+    background: var(--surface); position: relative;
+    border: 2px solid var(--border);
+    clip-path: polygon(20px 0, 100% 0, 100% 100%, 20px 100%, 0 50%);
+  }
+  .flow::before {
+    content: ""; position: absolute; left: 7px; top: 50%; transform: translateY(-50%);
+    width: 7px; height: 7px; border-radius: 50%; background: var(--bg);
+    border: 2px solid var(--border); z-index: 2;
+  }
+  .flow.flow-emergency { border-color: var(--emergency); }
+  .flow.flow-emergency::before { border-color: var(--emergency); }
+  .flow.flow-warning { border-color: var(--warning); }
+  .flow.flow-warning::before { border-color: var(--warning); }
+  .flow.flow-success { border-color: var(--success); }
+  .flow.flow-success::before { border-color: var(--success); }
+  .flow.flow-info { border-color: var(--info); }
+  .flow.flow-info::before { border-color: var(--info); }
+
+  .flow-step { flex: 1; padding: 11px 14px; border-right: 1px solid var(--border); }
+  .flow-step:first-child { padding-left: 30px; }
+  .flow-step:last-child { border-right: none; }
+  .flow-step .label { font-family: 'JetBrains Mono', monospace; font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); font-weight: 600; margin-bottom: 5px; }
+  .flow-step .value { font-size: 13px; line-height: 1.4; }
+
+  /* Status pill — flat, left-stripe only, NOT a pastel-fill badge */
+  .pill {
+    display: inline-block; font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700;
+    padding: 3px 9px; letter-spacing: 0.01em;
+    border-left: 3px solid; background: var(--surface);
+  }
+  .pill.emergency { border-color: var(--emergency); color: var(--emergency-ink); }
+  .pill.warning   { border-color: var(--warning); color: var(--warning-ink); }
+  .pill.success   { border-color: var(--success); color: var(--success-ink); }
+  .pill.info      { border-color: var(--info); color: var(--info); }
+
+  .quote { font-style: italic; color: var(--muted); border-left: 2px solid var(--border); padding-left: 10px; margin: 8px 0; }
+
+  /* Decision trace — signature technical element, real structured output */
+  .trace {
+    background: #1A130C; color: #E4D9C8; border-radius: 2px; padding: 14px 16px;
+    font-family: 'JetBrains Mono', monospace; font-size: 12px; line-height: 1.7; overflow-x: auto;
+  }
+  .trace .k { color: #8FB4D6; }
+  .trace .v { color: #EDE6DA; }
+  .trace .v.emergency { color: #E8897E; }
+  .trace .v.warning { color: #E3BE7A; }
+  .trace .v.success { color: #8FCBA0; }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .compare-col h4 { margin: 0 0 8px 0; font-size: 13px; font-weight: 600; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; padding: 8px 10px; border-bottom: 2px solid var(--border); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+  td { padding: 8px 10px; border-bottom: 1px solid var(--border); }
+  tr:hover td { background: #FAF7F0; }
+
+  /* KPI strip — flat numerals, thin rules, no tinted card backgrounds */
+  .metric-row { display: flex; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); margin-bottom: 16px; }
+  .metric { flex: 1; padding: 12px 16px; border-right: 1px solid var(--border); }
+  .metric:last-child { border-right: none; }
+  .metric .num { font-size: 22px; font-weight: 700; color: var(--ink); }
+  .metric .lbl { font-size: 10.5px; color: var(--muted); margin-top: 2px; }
+
+  .caption { font-size: 12.5px; color: var(--muted); line-height: 1.5; margin-bottom: 14px; }
+  .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid var(--border); border-top-color: var(--emergency-ink); border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; margin-right: 6px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .hidden { display: none !important; }
+  .queue-item { border: 1px solid var(--border); border-radius: 2px; margin-bottom: 8px; background: var(--surface); }
+  .queue-item summary { padding: 11px 16px; cursor: pointer; font-size: 13px; list-style: none; display: flex; align-items: center; gap: 10px; }
+  .queue-item summary::-webkit-details-marker { display: none; }
+  .queue-item .body { padding: 4px 16px 16px 16px; border-top: 1px solid var(--border); }
+  .rank-num { font-family: 'JetBrains Mono', monospace; color: var(--muted); font-size: 12px; width: 20px; }
+
+  .tech-detail { margin: 6px 0 16px 0; }
+  .tech-detail summary {
+    cursor: pointer; font-size: 11px; color: var(--muted); font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.04em; padding: 4px 0; list-style: none;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .tech-detail summary::-webkit-details-marker { display: none; }
+  .tech-detail summary::before { content: "▸ "; }
+  .tech-detail[open] summary::before { content: "▾ "; }
+  .tech-detail .trace { margin-top: 8px; }
+</style>
+</head>
+<body>
+<div class="shell">
+  <nav class="nav">
+    <div class="nav-brand">
+      <div class="title">Intercept</div>
+      <div class="subtitle">EMR IN-BASKET / TRIAGE</div>
+    </div>
+    <div class="nav-section-label">Clinical Operations</div>
+    <div class="nav-item active" data-view="live">Live Demo<span class="nav-sub">single message</span></div>
+    <div class="nav-item" data-view="queue">Inbox Queue<span class="nav-sub">daily worklist</span></div>
+    <div class="nav-item" data-view="dashboard">Inbox Dashboard<span class="nav-sub">manager summary</span></div>
+    <div class="nav-section-label">Engineering Validation</div>
+    <div class="nav-item" data-view="eval">Evaluation Harness<span class="nav-sub">accuracy check</span></div>
+    <div class="nav-item" data-view="adversarial">Adversarial Suite<span class="nav-sub">safety stress-test</span></div>
+  </nav>
+
+  <main class="main">
+    <!-- LIVE DEMO -->
+    <section id="view-live">
+      <div class="page-header">
+        <h1>Live Demo</h1>
+        <p>Select a scenario and route it through the full pipeline: safety screen → dispatch → specialist reasoning → structured decision.</p>
+      </div>
+      <select id="scenarioSelect"></select>
+      <button class="btn" id="routeBtn" style="margin-left:10px;">Route Message</button>
+      <div id="liveResult" style="margin-top:20px;"></div>
+    </section>
+
+    <!-- INBOX QUEUE -->
+    <section id="view-queue" class="hidden">
+      <div class="page-header">
+        <h1>Inbox Queue</h1>
+        <p>Several open messages from different patients, submitted out of urgency order, ranked by the system. Includes a repeated-contact case (patient_004 messages twice about the same unresolved issue).</p>
+      </div>
+      <button class="btn" id="queueBtn">Run Inbox Queue</button>
+      <div id="queueResult" style="margin-top:20px;"></div>
+    </section>
+
+    <!-- EVALUATION HARNESS -->
+    <section id="view-eval" class="hidden">
+      <div class="page-header">
+        <h1>Evaluation Harness</h1>
+        <p>Runs every scenario against its expected_routing_tag label. <strong>These labels were written by the project's builder based on a clinical background, not by a practicing nurse or physician reviewing these exact cases.</strong> This measures internal consistency, not validated clinical accuracy — that requires real clinician review of these scenarios, which hasn't happened yet.</p>
+      </div>
+      <button class="btn" id="evalBtn">Run Evaluation</button>
+      <div id="evalResult" style="margin-top:20px;"></div>
+    </section>
+
+    <!-- INBOX DASHBOARD -->
+    <section id="view-dashboard" class="hidden">
+      <div class="page-header">
+        <h1>Inbox Dashboard</h1>
+        <p>Aggregate volume and automation rate across the current demo scenario set — a demo estimate, not live production data.</p>
+      </div>
+      <button class="btn" id="dashboardBtn">Run Dashboard</button>
+      <div id="dashboardResult" style="margin-top:20px;"></div>
+    </section>
+
+    <!-- ADVERSARIAL -->
+    <section id="view-adversarial" class="hidden">
+      <div class="page-header">
+        <h1>Adversarial Test Suite</h1>
+        <p>Hedged red flags, buried emergencies, mixed-domain messages. Graded on the final system action, not any single intermediate field.</p>
+      </div>
+      <button class="btn" id="adversarialBtn">Run Adversarial Suite</button>
+      <div id="adversarialResult" style="margin-top:20px;"></div>
+    </section>
+  </main>
+</div>
+
+<script>
+const API = "";
+let SCENARIOS = {};
+
+function apiKey() { return ''; } // server resolves ANTHROPIC_API_KEY from its own environment — nothing to send from here
+function requireKey() { return true; } // no client-side gate needed; a real "no key configured" error surfaces cleanly from the server if it ever applies
+function esc(s) { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML; }
+
+function pillClass(tag, urgencyTier) {
+  if (tag === 'CLINICAL_EMERGENCY') return 'emergency';
+  if (tag === 'CLINICAL_ESCALATION' || tag === 'BILLING_DISPUTE') return 'warning';
+  if (urgencyTier === 'URGENT_CLINICAL_HOLD') return 'warning';
+  return 'success';
+}
+
+function renderOutput(specialist, output, patientName) {
+  patientName = patientName || 'this patient';
+  const tag = output.universal_routing_tag || output.urgency_tier;
+  const cls = pillClass(output.universal_routing_tag, output.urgency_tier);
+  let html = `<div class="flow flow-${cls}">
+    <div class="flow-step"><div class="label">Handled By</div><div class="value">${esc(specialist)}</div></div>
+    <div class="flow-step"><div class="label">Status</div><div class="value"><span class="pill ${cls}">${esc(tag)}</span></div></div>
+    <div class="flow-step"><div class="label">Action</div><div class="value mono" style="font-size:12px;">${esc(output.proposed_action_flag)}</div></div>
+  </div>`;
+
+  const justification = output.abridge_note_justification || output.context_justification;
+  if (justification) html += `<div class="quote">"${esc(justification)}"</div>`;
+  if (output.suggested_draft_reply) html += `<div class="card"><h3>Draft Reply</h3><div>${esc(output.suggested_draft_reply)}</div></div>`;
+  if (output.pending_secondary_task) html += `<div class="card"><h3>Pending Secondary Task</h3><div>${esc(output.pending_secondary_task)}</div></div>`;
+
+  // Real Epic sandbox pulls — same pattern as scheduling's slot pull.
+  // Offered for billing/results outputs specifically, where a real
+  // connected system actually has something to show.
+  if (output.primary_bucket === 'BILLING') {
+    html += `<div class="card">
+      <h3>Real Billing Detail (Epic Sandbox)</h3>
+      <button class="btn btn-secondary pull-epic-billing-btn">Check Real Billing/Coverage</button>
+      <div class="epic-pull-result" style="margin-top:10px;"></div>
+    </div>`;
+  }
+  if (output.primary_bucket === 'RESULTS') {
+    html += `<div class="card">
+      <h3>Real Lab Results (Epic Sandbox)</h3>
+      <button class="btn btn-secondary pull-epic-labs-btn">Check Real Lab Data</button>
+      <div class="epic-pull-result" style="margin-top:10px;"></div>
+    </div>`;
+  }
+
+  // Structured trace is proof for engineering/safety review, not something
+  // a nurse needs to see by default — collapsed unless opened.
+  html += `<details class="tech-detail"><summary>Technical detail (structured decision object)</summary><div class="trace">`;
+  for (const [k, v] of Object.entries(output)) {
+    if (v === null || v === undefined) continue;
+    const vcls = (k === 'universal_routing_tag' && cls) ? cls : '';
+    html += `<div><span class="k">${esc(k)}:</span> <span class="v ${vcls}">${esc(typeof v === 'object' ? JSON.stringify(v) : v)}</span></div>`;
+  }
+  html += `</div></details>`;
+  return html;
+}
+
+document.addEventListener('click', async (e) => {
+  if (e.target.classList.contains('pull-epic-billing-btn')) {
+    const btn = e.target;
+    const out = btn.closest('.card').querySelector('.epic-pull-result');
+    btn.disabled = true;
+    out.innerHTML = '<div class="caption"><span class="spinner"></span>Querying Epic sandbox...</div>';
+    try {
+      const res = await fetch('/api/epic/billing');
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Not connected — complete the Epic OAuth login first.');
+      const billingText = data.billing ? `Balance: ${JSON.stringify(data.billing.balance)}` : 'No billing record found.';
+      const coverageText = data.coverage ? `Coverage: ${esc(data.coverage.payor_reference || 'on file')}` : 'No coverage record found.';
+      out.innerHTML = `<div class="q-row" style="border-left-color:var(--info);"><span class="desc">${billingText} — ${coverageText}</span></div>`;
+    } catch (err) {
+      out.innerHTML = `<div class="caption" style="color:var(--emergency-ink);">${esc(err.message)}</div>`;
+    }
+    btn.disabled = false;
+  }
+  if (e.target.classList.contains('pull-epic-labs-btn')) {
+    const btn = e.target;
+    const out = btn.closest('.card').querySelector('.epic-pull-result');
+    btn.disabled = true;
+    out.innerHTML = '<div class="caption"><span class="spinner"></span>Querying Epic sandbox...</div>';
+    try {
+      const res = await fetch('/api/epic/labs');
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Not connected — complete the Epic OAuth login first.');
+      if (data.count === 0) {
+        out.innerHTML = '<div class="caption">Connected, but no lab observations returned by the sandbox right now.</div>';
+      } else {
+        out.innerHTML = data.results.map(r => `<div class="q-row" style="border-left-color:var(--info);"><span class="code mono">${esc(r.test_name || 'Result')}</span><span class="desc">${esc(r.value)} ${esc(r.unit || '')} (${esc(r.status)})</span></div>`).join('');
+      }
+    } catch (err) {
+      out.innerHTML = `<div class="caption" style="color:var(--emergency-ink);">${esc(err.message)}</div>`;
+    }
+    btn.disabled = false;
+  }
+});
+
+function renderDiagnostics(diag) {
+  let html = '';
+  if (diag.context_selection) {
+    const sel = diag.context_selection.selection_output;
+    if (sel) {
+      html += `<div class="caption">🔍 Context selection: narrowed ${diag.context_selection.provided_visit_count} prior visit(s) down to ${sel.no_relevant_visit_found ? 'none relevant' : sel.relevant_visit_dates.join(', ')} — ${esc(sel.selection_justification)}</div>`;
+    }
+  }
+  if (diag.secondary_resolutions && diag.secondary_resolutions.length) {
+    diag.secondary_resolutions.forEach(sec => {
+      if (sec.error) { html += `<div class="caption">⚠️ Secondary "${esc(sec.request)}" failed: ${esc(sec.error)}</div>`; return; }
+      html += `<div class="card"><h3>🔗 Bundled Request: "${esc(sec.request)}" — ${esc(sec.specialist)}</h3>${renderOutput(sec.specialist, sec.output)}</div>`;
+    });
+  }
+  return html;
+}
+
+// ---- Live Demo ----
+async function loadScenarios() {
+  const res = await fetch('/api/scenarios');
+  SCENARIOS = await res.json();
+  const sel = document.getElementById('scenarioSelect');
+  sel.innerHTML = Object.keys(SCENARIOS).map(name => `<option value="${esc(name)}">${esc(name)}</option>`).join('');
+}
+
+document.getElementById('routeBtn').addEventListener('click', async () => {
+  if (!requireKey()) return;
+  const name = document.getElementById('scenarioSelect').value;
+  const scenario = SCENARIOS[name];
+  const resultDiv = document.getElementById('liveResult');
+  const messageCard = `<div class="card"><h3>Patient Message</h3><div>${esc(scenario.raw_message)}</div></div>`;
+  resultDiv.innerHTML = messageCard + '<div class="caption"><span class="spinner"></span>Orchestrating...</div>';
+  try {
+    if (name.startsWith('Scenario 1:')) {
+      const res = await fetch('/api/route-comparison', {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ api_key: apiKey(), message_text: scenario.raw_message, abridge_note: scenario.abridge_context })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Request failed');
+      resultDiv.innerHTML = messageCard + `<div class="grid-2">
+        <div class="compare-col"><h4>❌ WITHOUT Abridge Context</h4>${renderOutput(data.without_context.specialist, data.without_context.output, scenario.patient_name)}</div>
+        <div class="compare-col"><h4>✅ WITH Abridge Context</h4>${renderOutput(data.with_context.specialist, data.with_context.output, scenario.patient_name)}</div>
+      </div>`;
+    } else {
+      const res = await fetch('/api/route', {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ api_key: apiKey(), message_text: scenario.raw_message, abridge_note: scenario.abridge_context })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Request failed');
+      resultDiv.innerHTML = messageCard + renderOutput(data.specialist, data.output, scenario.patient_name) + renderDiagnostics(data.diagnostics);
+
+      // Real Epic sandbox slot pull - only offered for the scheduling
+      // ambiguity scenario, where it actually means something: the
+      // system just resolved WHEN the patient is due using documented
+      // history, and this shows it can also pull REAL open slots for
+      // that resolved window, not just reason about the date.
+      if (name.startsWith('Scenario 12:')) {
+        resultDiv.innerHTML += `<div class="card">
+          <h3>Real Availability (Epic Sandbox)</h3>
+          <button class="btn btn-secondary" id="pullEpicSlotsBtn">Check Real Availability</button>
+          <div id="epicSlotsResult" style="margin-top:10px;"></div>
+        </div>`;
+      }
+    }
+  } catch (e) {
+    resultDiv.innerHTML = messageCard + `<div class="caption" style="color:var(--emergency-ink);">Error: ${esc(e.message)}</div>`;
+  }
+});
+
+document.addEventListener('click', async (e) => {
+  if (e.target.id === 'pullEpicSlotsBtn') {
+    const btn = e.target;
+    const out = document.getElementById('epicSlotsResult');
+    btn.disabled = true;
+    out.innerHTML = '<div class="caption"><span class="spinner"></span>Querying Epic sandbox...</div>';
+    try {
+      const res = await fetch('/api/epic/slots');
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Not connected — complete the Epic OAuth login first.');
+      if (data.count === 0) {
+        out.innerHTML = '<div class="caption">Connected, but no free slots returned by the sandbox right now.</div>';
+      } else {
+        out.innerHTML = data.slots.map(s => `<div class="q-row" style="border-left-color:var(--success);"><span class="code mono">${esc(s.slot_id.slice(0,12))}...</span><span class="desc">${esc(s.start)} → ${esc(s.end)}</span></div>`).join('');
+      }
+    } catch (err) {
+      out.innerHTML = `<div class="caption" style="color:var(--emergency-ink);">${esc(err.message)}</div>`;
+    }
+    btn.disabled = false;
+  }
+});
+
+// ---- Inbox Queue ----
+document.getElementById('queueBtn').addEventListener('click', async () => {
+  if (!requireKey()) return;
+  const resultDiv = document.getElementById('queueResult');
+  resultDiv.innerHTML = '<div class="caption"><span class="spinner"></span>Processing and ranking...</div>';
+  try {
+    const res = await fetch('/api/inbox-queue', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ api_key: apiKey() }) });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Request failed');
+    let html = '';
+    data.ranked.forEach((r, i) => {
+      const tag = r.output.universal_routing_tag || r.output.urgency_tier;
+      const cls = pillClass(r.output.universal_routing_tag, r.output.urgency_tier);
+      const rc = r.diagnostics.repeated_contact;
+      html += `<details class="queue-item"><summary><span class="rank-num">${i+1}.</span><b>${esc(r.patient_id)}</b><span class="pill ${cls}">${esc(tag)}</span></summary>
+        <div class="body">
+          <div class="quote">"${esc(r.message_text)}"</div>
+          ${renderOutput(r.specialist, r.output, r.patient_id)}
+          ${rc && rc.escalation_applied ? `<div class="pill warning">🔁 Escalated — ${rc.prior_contact_count} prior unresolved contact(s) in ${rc.window_days} days</div>` : ''}
+        </div>
+      </details>`;
+    });
+    resultDiv.innerHTML = html;
+  } catch (e) {
+    resultDiv.innerHTML = `<div class="caption" style="color:var(--emergency-ink);">Error: ${esc(e.message)}</div>`;
+  }
+});
+
+// ---- Evaluation Harness ----
+document.getElementById('evalBtn').addEventListener('click', async () => {
+  if (!requireKey()) return;
+  const resultDiv = document.getElementById('evalResult');
+  resultDiv.innerHTML = '<div class="caption"><span class="spinner"></span>Running evaluation...</div>';
+  try {
+    const res = await fetch('/api/evaluate', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ api_key: apiKey() }) });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Request failed');
+    let html = `<div class="metric-row">
+      <div class="metric"><div class="num">${Math.round(data.agreement_rate*100)}%</div><div class="lbl">Agreement Rate</div></div>
+      <div class="metric"><div class="num">${data.agreed}/${data.total}</div><div class="lbl">Agreed</div></div>
+    </div><table><tr><th>Scenario</th><th>Expected</th><th>Actual</th><th>Match</th></tr>`;
+    data.results.forEach(r => {
+      html += `<tr><td>${esc(r.scenario_name)}</td><td class="mono">${esc(r.expected)}</td><td class="mono">${esc(r.actual)}</td><td>${r.agreed ? '✅' : '❌'}</td></tr>`;
+    });
+    html += `</table>`;
+    resultDiv.innerHTML = html;
+  } catch (e) {
+    resultDiv.innerHTML = `<div class="caption" style="color:var(--emergency-ink);">Error: ${esc(e.message)}</div>`;
+  }
+});
+
+// ---- Dashboard ----
+document.getElementById('dashboardBtn').addEventListener('click', async () => {
+  if (!requireKey()) return;
+  const resultDiv = document.getElementById('dashboardResult');
+  resultDiv.innerHTML = '<div class="caption"><span class="spinner"></span>Processing inbox...</div>';
+  try {
+    const res = await fetch('/api/dashboard', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ api_key: apiKey() }) });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Request failed');
+    let bucketHtml = Object.entries(data.bucket_counts).map(([b,c]) => `<div class="metric"><div class="num">${c}</div><div class="lbl">${esc(b)}</div></div>`).join('');
+    resultDiv.innerHTML = `<div class="metric-row">${bucketHtml}</div>
+      <div class="metric-row">
+        <div class="metric"><div class="num">${data.auto_handled} (${Math.round(data.auto_handled_pct)}%)</div><div class="lbl">Automatically Handled</div></div>
+        <div class="metric"><div class="num">${data.escalated}</div><div class="lbl">Escalated to Staff</div></div>
+        <div class="metric"><div class="num">${data.emergencies}</div><div class="lbl">Emergencies Flagged</div></div>
+      </div>`;
+  } catch (e) {
+    resultDiv.innerHTML = `<div class="caption" style="color:var(--emergency-ink);">Error: ${esc(e.message)}</div>`;
+  }
+});
+
+// ---- Adversarial ----
+document.getElementById('adversarialBtn').addEventListener('click', async () => {
+  if (!requireKey()) return;
+  const resultDiv = document.getElementById('adversarialResult');
+  resultDiv.innerHTML = '<div class="caption"><span class="spinner"></span>Running adversarial cases...</div>';
+  try {
+    const res = await fetch('/api/adversarial', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ api_key: apiKey() }) });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Request failed');
+    let html = `<div class="metric-row">
+      <div class="metric"><div class="num">${data.passed}/${data.total}</div><div class="lbl">Passed</div></div>
+    </div>`;
+    data.results.forEach(r => {
+      html += `<details class="queue-item"><summary>${r.passed ? '✅' : '❌'} ${esc(r.case_name)}</summary>
+        <div class="body">
+          <div class="caption">Testing: ${esc(r.tests)}</div>
+          <div>Final tag: <span class="mono">${esc(r.final_tag)}</span></div>
+          <div>Expected emergency: ${r.expected_emergency} — Actual: ${r.actual_is_emergency}</div>
+          ${r.model_required_correction ? `<div class="pill warning">⚙️ Model output required correction</div>` : `<div class="caption">✓ Clean model behavior, no correction needed</div>`}
+        </div>
+      </details>`;
+    });
+    resultDiv.innerHTML = html;
+  } catch (e) {
+    resultDiv.innerHTML = `<div class="caption" style="color:var(--emergency-ink);">Error: ${esc(e.message)}</div>`;
+  }
+});
+
+// ---- Nav ----
+document.querySelectorAll('.nav-item').forEach(item => {
+  item.addEventListener('click', () => {
+    document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+    item.classList.add('active');
+    document.querySelectorAll('main > section').forEach(s => s.classList.add('hidden'));
+    document.getElementById('view-' + item.dataset.view).classList.remove('hidden');
+  });
+});
+
+loadScenarios();
+</script>
+</body>
+</html>
