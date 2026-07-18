@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+*.db
+.env
+venv/
+epic_private_key.pem
+epic_public_key.pem
+*.pem
