@@ -1,0 +1,12 @@
+{
+  "keys": [
+    {
+      "kty": "RSA",
+      "use": "sig",
+      "alg": "RS384",
+      "kid": "intercept-demo-key-1",
+      "n": "ypd2bxDiwX2BS_TznEuESTR5uBYDwEupT_mPHj16xE8LnqORiK3yN8bQbk1OeHbgMy7ojKi5IPhFhdn_WClPNRLJfxhLRRvSB35Mhn3WzN4_J2lsHXR6OzE-KXzBh8B-yzMW5N0N24tKpAqt4u0TUIrkrPVRlW4rwyeQ40xi4Um-cmWc4GEzQndtDh1zIVnVdmPMgm84wV50P-XYM2Jm8MlI-lAQq-Ata5qDAVRK3QeKeqOKOr3yR5FaXKUp1CjvRCPj1tEmW3nJ9xc-vOPm655rrP5zgAOUQJmIKv8yGKKKULeZKNyjOyqk0_lu6li046-5ma612we7vVe9K-1xMw",
+      "e": "AQAB"
+    }
+  ]
+}
