@@ -13,7 +13,7 @@ I evaluate whether provider-authored longitudinal clinical context improves the 
 
 Treatment improved escalation accuracy from 8/12 to 12/12. Emergency detection remained at 100% recall in both conditions. On the surface, this looks like a straightforward "context helps" result. It is not. Baseline reached its correct answers largely by refusing to reason without evidence and deferring to human review. Treatment reached the same answers by citing the specific documented rule that applied to the case. The routing outcomes overlap on several scenarios. The clinical quality of the reasoning does not.
 
-The evaluation also surfaced a specific and actionable gap. The results specialist retrieves correct lab values from the retrieved context but does not attribute them to a source document. This is a one-prompt fix.
+The evaluation also surfaced a specific and actionable gap. The results specialist retrieves correct lab values from the retrieved context but does not attribute them to a source document. I believe this is likely addressable with a targeted prompt change.
 
 ---
 
